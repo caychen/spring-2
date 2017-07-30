@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:aop="http://www.springframework.org/schema/aop"  
+    xmlns:tx="http://www.springframework.org/schema/tx" 
+    xmlns:util="http://www.springframework.org/schema/util" 
+    xmlns:jdbc="http://www.springframework.org/schema/jdbc"  
+    xmlns:cache="http://www.springframework.org/schema/cache"
+      
+    xsi:schemaLocation="
+    http://www.springframework.org/schema/context  
+    http://www.springframework.org/schema/context/spring-context-4.2.xsd  
+    http://www.springframework.org/schema/beans  
+    http://www.springframework.org/schema/beans/spring-beans-4.2.xsd  
+    http://www.springframework.org/schema/tx  
+    http://www.springframework.org/schema/tx/spring-tx-4.2.xsd  
+    http://www.springframework.org/schema/jdbc  
+    http://www.springframework.org/schema/jdbc/spring-jdbc-4.2.xsd  
+    http://www.springframework.org/schema/cache  
+    http://www.springframework.org/schema/cache/spring-cache-4.2.xsd  
+    http://www.springframework.org/schema/aop  
+    http://www.springframework.org/schema/aop/spring-aop-4.2.xsd  
+    http://www.springframework.org/schema/util  
+    http://www.springframework.org/schema/util/spring-util-4.2.xsd">
+    
+	<bean id="jdbcCostDAO" class="dao.impl.JdbcCostDAO"
+		scope="singleton" init-method="myinit" destroy-method="mydestroy">
+	</bean>
+	
+	<bean id="hibernateCostDAO" class="dao.impl.HibernateCostDAO">
+	</bean>
+	
+	<bean id="costAction" class="action.CostAction" scope="prototype">
+		<!-- 利用setCostDAO方法接收jdbcCostDAO对象给action中的costDAO -->
+		<property name="costDAO" ref="hibernateCostDAO"></property>
+	</bean>
+	
+	<bean id="deleteAction" scope="prototype" class="action.DeleteAction">
+		<!-- index表示第index个参数使用构造方式注入，如果需要注入多个参数，可以多次使用下列配置，index依次对应 -->
+		<constructor-arg index="0" ref="hibernateCostDAO">
+		</constructor-arg>
+	</bean>
+	<bean id="messageBean" class="dao.MessageBean">
+		<property name="name" value="root"></property>
+		<property name="fileDir" value="D:\\Code\\"></property>
+		<property name="hbms">
+			<list>
+				<value>entity/Cost.hbm.xml</value>
+				<value>entity/Account.hbm.xml</value>
+			</list>
+		</property>
+		<property name="cities">
+			<set>
+				<value>北京</value>
+				<value>上海</value>
+				<value>苏州</value>
+			</set>
+		</property>
+		<property name="books">
+			<map>
+				<entry key="1" value="C++程序设计"></entry>
+				<entry key="2" value="C语言程序设计"></entry>
+				<entry key="3" value="Java程序设计"></entry>
+			</map>
+		</property>
+		<property name="props">
+			<props>
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="hibernate.format_sql">true</prop>
+				<prop key="hibernate.dialect">org.hibernate.dialect.MySQLDialect</prop>
+			</props>
+		</property>
+		<property name="types">
+			<value>jpg,gif,mp4,rmvb
+			</value>
+		</property>
+	</bean>
+	
+	<!-- AOP记录操作日志案例 -->
+	<bean id="loggerBean" class="aop.LoggerBean">
+	</bean>
+	<!-- AOP记录异常信息 -->
+	<bean id="exceptionBean" class="aop.ExceptionBean">
+	</bean>
+	<aop:config>
+		<!-- 指定AOP切入点，用于指定目标组件和方法 -->
+		<aop:pointcut expression="within(action.*)" id="actionPointcut" />
+		
+		<!-- 定义方面，将ref指定为方面组件 -->
+		<aop:aspect id="loggerAspect" ref="loggerBean">
+		
+			<!-- 定义通知，采用环绕通知 -->
+			<aop:around method="logger"
+				pointcut-ref="actionPointcut" />
+		</aop:aspect>
+		
+		<!-- 定义方面组件，将exceptionBean指定为方面组件 -->
+		<aop:aspect id="exceptionAspect" ref="exceptionBean">
+			<!-- 需要指明异常参数ex，表示抛出的异常给ex -->
+			<aop:after-throwing method="exec"
+				pointcut-ref="actionPointcut" throwing="ex" />
+		</aop:aspect>
+	</aop:config>
+</beans>	
